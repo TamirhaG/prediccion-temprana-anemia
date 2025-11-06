@@ -1,35 +1,39 @@
 import streamlit as st
-import joblib
 import pandas as pd
-import numpy as np
+import joblib
 from supabase import create_client
+import datetime
 
-# --- Configuración inicial ---
-st.set_page_config(page_title="MIDIS - Predicción de Anemia Infantil", layout="wide")
+# --- CONFIGURACIÓN DE PÁGINA ---
+st.set_page_config(page_title="Predicción Temprana de Anemia - MIDIS 2025", layout="wide")
+st.title("🩸 Sistema Predictivo de Riesgo de Anemia")
+st.write("Prototipo IA - MIDIS 2025 | Autor: **Ramon Giraldo**")
 
-# Cargar modelo calibrado
-model = joblib.load("artifacts/model_xgboost_calibrated.joblib")
+# --- CARGAR MODELO ---
+MODEL_PATH = "artifacts/model_xgboost_calibrated.joblib"
+model = joblib.load(MODEL_PATH)
 
-# Conexión Supabase
-url = st.secrets["supabase_url"]
-key = st.secrets["supabase_key"]
-supabase = create_client(url, key)
+# --- CONEXIÓN SUPABASE ---
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# --- Interfaz ---
-st.title("🩸 Sistema Predictivo de Riesgo de Anemia Infantil")
-st.write("Predicción temprana basada en inteligencia artificial - MIDIS 2025")
+# --- FORMULARIO DE ENTRADA ---
+with st.form("pred_form"):
+    st.subheader("Ingrese los datos del beneficiario:")
 
-# Entradas del usuario
-edad = st.slider("Edad (meses)", 6, 60, 24)
-peso = st.number_input("Peso (kg)", 4.0, 25.0, 12.0)
-talla = st.number_input("Talla (cm)", 50.0, 120.0, 85.0)
-altitud = st.number_input("Altitud del domicilio (m.s.n.m.)", 0, 4500, 2500)
-area = st.selectbox("Área", ["Urbana", "Rural"])
-sexo = st.radio("Sexo", ["M", "F"])
+    edad = st.slider("Edad (meses)", 6, 60, 24)
+    peso = st.number_input("Peso (kg)", min_value=4.0, max_value=25.0, value=12.0)
+    talla = st.number_input("Talla (cm)", min_value=50.0, max_value=120.0, value=85.0)
+    altitud = st.number_input("Altitud del domicilio (m.s.n.m.)", min_value=0, max_value=4500, value=2500)
+    sexo = st.radio("Sexo", ["M", "F"])
+    area = st.selectbox("Área de residencia", ["Urbana", "Rural"])
 
-# Procesamiento
-if st.button("Evaluar riesgo"):
-    X = pd.DataFrame([{
+    submitted = st.form_submit_button("Predecir riesgo")
+
+if submitted:
+    # --- Preparar entrada ---
+    X_input = pd.DataFrame([{
         "Edad_meses": edad,
         "Peso_kg": peso,
         "Talla_cm": talla,
@@ -37,14 +41,19 @@ if st.button("Evaluar riesgo"):
         "Sexo_M": 1 if sexo == "M" else 0,
         "Area_Rural": 1 if area == "Rural" else 0
     }])
-    prob = model.predict_proba(X)[0, 1]
-    riesgo = "ALTO" if prob > 0.65 else "MEDIO" if prob > 0.4 else "BAJO"
 
+    # --- Predicción ---
+    prob = model.predict_proba(X_input)[0, 1]
+    riesgo = "ALTO" if prob >= 0.7 else "MEDIO" if prob >= 0.5 else "BAJO"
+
+    # --- Mostrar resultados ---
     st.metric("Probabilidad estimada de anemia", f"{prob*100:.2f}%")
     st.subheader(f"🩺 Riesgo detectado: {riesgo}")
+    st.caption(f"Modelo calibrado XGBoost - actualizado al 28/10/2025")
 
-    # Guardar en Supabase
-    supabase.table("predicciones_anemia").insert({
+    # --- Guardar en Supabase ---
+    record = {
+        "fecha": datetime.datetime.now().isoformat(),
         "edad_meses": edad,
         "peso_kg": peso,
         "talla_cm": talla,
@@ -53,6 +62,10 @@ if st.button("Evaluar riesgo"):
         "area": area,
         "prob_anemia": float(prob),
         "riesgo": riesgo
-    }).execute()
+    }
 
-    st.success("Resultado guardado correctamente en la base de datos.")
+    try:
+        supabase.table("predicciones_anemia").insert(record).execute()
+        st.success("Predicción registrada correctamente en Supabase ✅")
+    except Exception as e:
+        st.warning(f"No se pudo guardar en Supabase: {e}")
