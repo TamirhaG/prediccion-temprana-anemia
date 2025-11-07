@@ -1,71 +1,106 @@
+# =========================================================
+# STREAMLIT APP — Sistema Predictivo de Riesgo de Anemia
+# =========================================================
 import streamlit as st
 import pandas as pd
 import joblib
-from supabase import create_client
-import datetime
+import numpy as np
+from supabase import create_client, Client
+from dotenv import load_dotenv
+import os
 
-# --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Predicción Temprana de Anemia - MIDIS 2025", layout="wide")
-st.title("🩸 Sistema Predictivo de Riesgo de Anemia")
-st.write("Prototipo IA - MIDIS 2025 | Autor: **Ramon Giraldo**")
+# ---------------------------
+# Configuración inicial
+# ---------------------------
+load_dotenv()
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# --- CARGAR MODELO ---
 MODEL_PATH = "artifacts/model_xgboost_calibrated.joblib"
 model = joblib.load(MODEL_PATH)
 
-# --- CONEXIÓN SUPABASE ---
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+st.set_page_config(page_title="Predicción Temprana de Anemia - MIDIS", layout="wide")
 
-# --- FORMULARIO DE ENTRADA ---
-with st.form("pred_form"):
-    st.subheader("Ingrese los datos del beneficiario:")
+st.title("Sistema Predictivo de Riesgo de Anemia (MIDIS 2025)")
+st.markdown("### Proyecto: Detección temprana de riesgo de anemia en beneficiarios de programas de alimentación")
 
-    edad = st.slider("Edad (meses)", 6, 60, 24)
-    peso = st.number_input("Peso (kg)", min_value=4.0, max_value=25.0, value=12.0)
-    talla = st.number_input("Talla (cm)", min_value=50.0, max_value=120.0, value=85.0)
-    altitud = st.number_input("Altitud del domicilio (m.s.n.m.)", min_value=0, max_value=4500, value=2500)
-    sexo = st.radio("Sexo", ["M", "F"])
-    area = st.selectbox("Área de residencia", ["Urbana", "Rural"])
+# ---------------------------
+# Entrada de datos (formulario)
+# ---------------------------
+st.subheader("Ingreso de Datos del Niño o Gestante")
 
-    submitted = st.form_submit_button("Predecir riesgo")
+col1, col2, col3 = st.columns(3)
 
-if submitted:
-    # --- Preparar entrada ---
-    X_input = pd.DataFrame([{
-        "Edad_meses": edad,
-        "Peso_kg": peso,
-        "Talla_cm": talla,
-        "Altitud_m": altitud,
-        "Sexo_M": 1 if sexo == "M" else 0,
-        "Area_Rural": 1 if area == "Rural" else 0
+with col1:
+    edad_meses = st.number_input("Edad (meses)", min_value=0, max_value=60, value=24)
+    peso_kg = st.number_input("Peso (kg)", min_value=2.0, max_value=30.0, value=12.5)
+    talla_cm = st.number_input("Talla (cm)", min_value=40.0, max_value=120.0, value=85.0)
+
+with col2:
+    sexo = st.selectbox("Sexo", ["M", "F"])
+    altitud_m = st.number_input("Altitud (m)", min_value=0, max_value=5000, value=2500)
+    ingreso_familiar_soles = st.number_input("Ingreso familiar (S/.)", min_value=0, max_value=5000, value=850)
+
+with col3:
+    nro_hijos = st.number_input("Número de hijos", min_value=1, max_value=10, value=2)
+    area_rural = st.selectbox("Área rural", [True, False])
+    suplementacion_hierro = st.selectbox("Recibe suplementación de hierro", [True, False])
+
+# ---------------------------
+# Predicción
+# ---------------------------
+if st.button("Calcular Riesgo de Anemia"):
+    input_data = pd.DataFrame([{
+        "edad_meses": edad_meses,
+        "peso_kg": peso_kg,
+        "talla_cm": talla_cm,
+        "sexo_F": 1 if sexo == "F" else 0,
+        "sexo_M": 1 if sexo == "M" else 0,
+        "altitud_m": altitud_m,
+        "ingreso_familiar_soles": ingreso_familiar_soles,
+        "nro_hijos": nro_hijos,
+        "area_rural": area_rural,
+        "suplementacion_hierro": suplementacion_hierro
     }])
 
-    # --- Predicción ---
-    prob = model.predict_proba(X_input)[0, 1]
-    riesgo = "ALTO" if prob >= 0.7 else "MEDIO" if prob >= 0.5 else "BAJO"
+    # Cálculo
+    prob = model.predict_proba(input_data)[0][1]
+    riesgo = "Alto" if prob >= 0.5 else "Bajo"
 
-    # --- Mostrar resultados ---
-    st.metric("Probabilidad estimada de anemia", f"{prob*100:.2f}%")
-    st.subheader(f"🩺 Riesgo detectado: {riesgo}")
-    st.caption(f"Modelo calibrado XGBoost - actualizado al 28/10/2025")
+    st.metric("Probabilidad de riesgo", f"{prob:.2%}")
+    st.success(f"Riesgo Predicho: **{riesgo.upper()}**")
 
-    # --- Guardar en Supabase ---
-    record = {
-        "fecha": datetime.datetime.now().isoformat(),
-        "edad_meses": edad,
-        "peso_kg": peso,
-        "talla_cm": talla,
-        "altitud_m": altitud,
+    # Guardar en Supabase
+    data_to_insert = {
+        "edad_meses": edad_meses,
         "sexo": sexo,
-        "area": area,
-        "prob_anemia": float(prob),
-        "riesgo": riesgo
+        "peso_kg": peso_kg,
+        "talla_cm": talla_cm,
+        "altitud_m": altitud_m,
+        "area_rural": area_rural,
+        "ingreso_familiar_soles": ingreso_familiar_soles,
+        "nro_hijos": nro_hijos,
+        "suplementacion_hierro": suplementacion_hierro,
+        "prob_riesgo_modelo": round(float(prob), 4),
+        "riesgo_predicho": riesgo
     }
 
     try:
-        supabase.table("predicciones_anemia").insert(record).execute()
-        st.success("Predicción registrada correctamente en Supabase ✅")
+        supabase.table("pacientes_anemia").insert(data_to_insert).execute()
+        st.info("Registro guardado en la base de datos Supabase")
     except Exception as e:
-        st.warning(f"No se pudo guardar en Supabase: {e}")
+        st.error(f"Error al guardar en Supabase: {e}")
+
+# ---------------------------
+# Panel inferior: datos históricos
+# ---------------------------
+st.subheader("Historial de registros almacenados")
+
+try:
+    registros = supabase.table("pacientes_anemia").select("*").execute()
+    df = pd.DataFrame(registros.data)
+    st.dataframe(df.sort_values("fecha_registro", ascending=False).head(10))
+except Exception as e:
+    st.warning(f"No se pudo cargar la data desde Supabase: {e}")
+
