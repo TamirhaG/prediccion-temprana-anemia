@@ -116,82 +116,77 @@ st.markdown("---")
 st.header("Análisis de Predicciones en Tiempo Real")
 
 try:
-    # Leer las predicciones recientes
     # ---------------------------------------------------------
-    # Cargar datos históricos + recientes desde Supabase
+    # 1. Cargar datos históricos y predicciones nuevas
     # ---------------------------------------------------------
-    try:
-        df_pred = pd.DataFrame(supabase.table("predicciones").select("*").execute().data)
-        df_hist = pd.DataFrame(supabase.table("anemia_riesgo").select("*").execute().data)
+    df_hist = pd.DataFrame(supabase.table("anemia_riesgo").select("*").execute().data)
+    df_pred = pd.DataFrame(supabase.table("predicciones").select("*").execute().data)
 
-        # Combinar ambos datasets
-        df_all = pd.concat([df_hist, df_pred], ignore_index=True)
-        df_all["created_at"] = pd.to_datetime(df_all["created_at"], errors="coerce")
-        df_all = df_all.dropna(subset=["created_at"])
-        df_all = df_all.sort_values("created_at", ascending=False)
+    # Normalizar estructura
+    df_hist.rename(columns={
+        "edad_meses": "edad_meses",
+        "peso_kg": "peso",
+        "talla_cm": "talla",
+        "altitud_m": "altitud",
+        "prob_anemia": "probabilidad",
+    }, inplace=True)
 
-    except Exception as e:
-        st.error("⚠️ No se pudo conectar a Supabase o combinar datos.")
-        st.exception(e)
-        df_all = pd.DataFrame()  # aseguramos que exista la variable
+    df_hist["fuente"] = df_hist.get("fuente", "dataset_inicial")
+    df_pred["fuente"] = "streamlit_app"
 
+    # Combinar datasets
+    df_all = pd.concat([df_hist, df_pred], ignore_index=True)
+    df_all["created_at"] = pd.to_datetime(df_all["created_at"], errors="coerce")
+    df_all = df_all.sort_values("created_at", ascending=False)
 
-
-    if not df_hist.empty:
-        # Convertir timestamps
-        df_hist["created_at"] = pd.to_datetime(df_hist["created_at"])
-
-        # -------------------------------
-        # KPIs principales
-        # -------------------------------
-        total_pred = len(df_hist)
-        alto = (df_hist["riesgo"] == "ALTO").sum()
-        medio = (df_hist["riesgo"] == "MEDIO").sum()
-        bajo = (df_hist["riesgo"] == "BAJO").sum()
+    if df_all.empty:
+        st.info("No hay registros aún en la base de datos. Realiza una predicción para iniciar el historial.")
+    else:
+        # ---------------------------------------------------------
+        # 2. KPIs principales
+        # ---------------------------------------------------------
+        total_pred = len(df_all)
+        alto = (df_all["riesgo"] == "ALTO").sum()
+        medio = (df_all["riesgo"] == "MEDIO").sum()
+        bajo = (df_all["riesgo"] == "BAJO").sum()
 
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Total de predicciones", f"{total_pred}")
-        col2.metric("Casos de riesgo ALTO", f"{alto} ({alto/total_pred*100:.1f}%)")
-        col3.metric("Casos MEDIOS", f"{medio} ({medio/total_pred*100:.1f}%)")
-        col4.metric("Casos BAJOS", f"{bajo} ({bajo/total_pred*100:.1f}%)")
+        col1.metric("Total de registros", f"{total_pred}")
+        col2.metric("Casos ALTO riesgo", f"{alto} ({alto/total_pred*100:.1f}%)")
+        col3.metric("Casos MEDIO riesgo", f"{medio} ({medio/total_pred*100:.1f}%)")
+        col4.metric("Casos BAJO riesgo", f"{bajo} ({bajo/total_pred*100:.1f}%)")
 
-        # -------------------------------
-        # Distribución de riesgo (gráfico)
-        # -------------------------------
-        st.subheader("Distribución de riesgo")
-        dist = df_hist["riesgo"].value_counts(normalize=True).mul(100).reset_index()
+        # ---------------------------------------------------------
+        # 3. Distribución general de riesgo
+        # ---------------------------------------------------------
+        st.subheader("Distribución general de riesgo")
+        dist = df_all["riesgo"].value_counts(normalize=True).mul(100).reset_index()
         dist.columns = ["Riesgo", "Porcentaje"]
-
         st.bar_chart(dist.set_index("Riesgo"))
 
-        # -------------------------------
-        # Tendencia temporal (últimos 7 días)
-        # -------------------------------
-        st.subheader("Tendencia de predicciones")
-        trend = df_hist.groupby(df_hist["created_at"].dt.date)["riesgo"].value_counts().unstack(fill_value=0)
+        # ---------------------------------------------------------
+        # 4. Comparativa: Datos históricos vs Nuevas predicciones
+        # ---------------------------------------------------------
+        st.subheader("Comparativa por fuente de datos")
+        comp = df_all.groupby(["fuente", "riesgo"]).size().unstack(fill_value=0)
+        st.bar_chart(comp)
+
+        # ---------------------------------------------------------
+        # 5. Tendencia temporal de las predicciones
+        # ---------------------------------------------------------
+        st.subheader("Tendencia temporal (últimos registros)")
+        trend = df_all.groupby(df_all["created_at"].dt.date)["riesgo"].value_counts().unstack(fill_value=0)
         st.line_chart(trend)
 
-        # -------------------------------
-        # Tabla con últimas predicciones
-        # -------------------------------
-        st.subheader("Últimas predicciones registradas")
-        st.dataframe(df_hist[["created_at", "edad_meses", "peso", "talla", "sexo", "altitud", "ingreso", "probabilidad", "riesgo"]].head(10))
-
-    else:
-        st.info("No hay registros aún en la base de datos. Realiza una predicción para iniciar el historial.")
+        # ---------------------------------------------------------
+        # 6. Tabla resumen
+        # ---------------------------------------------------------
+        st.subheader("Últimas 10 predicciones (todas las fuentes)")
+        cols = ["created_at", "edad_meses", "peso", "talla", "altitud", "probabilidad", "riesgo", "fuente"]
+        cols = [c for c in cols if c in df_all.columns]
+        st.dataframe(df_all[cols].head(10))
 
 except Exception as e:
     st.error("No se pudo conectar con Supabase o generar el dashboard.")
     st.exception(e)
 
-
-st.markdown("---")
-st.subheader("Historial de predicciones")
-
-try:
-    data = supabase.table("predicciones").select("*").order("created_at", desc=True).limit(10).execute()
-    df = pd.DataFrame(data.data)
-    st.dataframe(df)
-except Exception as e:
-    st.error("No se pudo cargar el historial.")
-    st.exception(e)
