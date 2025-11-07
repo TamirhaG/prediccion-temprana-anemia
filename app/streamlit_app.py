@@ -112,18 +112,24 @@ st.header("Análisis de Predicciones en Tiempo Real")
 
 try:
     # Leer las predicciones recientes
-    # Combinar datos históricos + recientes
+    # ---------------------------------------------------------
+    # Cargar datos históricos + recientes desde Supabase
+    # ---------------------------------------------------------
     try:
         df_pred = pd.DataFrame(supabase.table("predicciones").select("*").execute().data)
         df_hist = pd.DataFrame(supabase.table("anemia_riesgo").select("*").execute().data)
 
+        # Combinar ambos datasets
         df_all = pd.concat([df_hist, df_pred], ignore_index=True)
         df_all["created_at"] = pd.to_datetime(df_all["created_at"], errors="coerce")
         df_all = df_all.dropna(subset=["created_at"])
         df_all = df_all.sort_values("created_at", ascending=False)
+
     except Exception as e:
-        st.error("No se pudo conectar a Supabase.")
+        st.error("⚠️ No se pudo conectar a Supabase o combinar datos.")
         st.exception(e)
+        df_all = pd.DataFrame()  # aseguramos que exista la variable
+
 
 
     if not df_hist.empty:
