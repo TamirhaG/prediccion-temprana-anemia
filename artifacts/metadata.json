@@ -1,16 +1,9 @@
 {
-  "model_name": "xgboost_calibrated",
-  "trained_at": "2025-10-28T12:00:00Z",
-  "framework": "scikit-learn + XGBoost",
+  "model_name": "XGBoost Calibrado",
   "version": "1.0.0",
-  "dataset_source": "dataset_anemia_peru_midis_2025.csv",
-  "author": "Ramon Giraldo",
-  "metrics": {
-    "accuracy": 0.9403,
-    "precision": 0.9196,
-    "recall": 0.9449,
-    "f1": 0.9321,
-    "roc_auc": 0.9853
-  },
-  "notes": "Modelo calibrado con regresión isotónica. Entrenado sobre 53,172 muestras tras limpieza y codificación híbrida."
+  "trained_on": "2025-11-05",
+  "trained_by": "Ramon Giraldo",
+  "framework": "scikit-learn + xgboost",
+  "target_variable": "Anemia",
+  "description": "Modelo calibrado para detección temprana de riesgo de anemia infantil beneficiarios MIDIS."
 }
