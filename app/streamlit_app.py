@@ -112,8 +112,19 @@ st.header("Análisis de Predicciones en Tiempo Real")
 
 try:
     # Leer las predicciones recientes
-    response = supabase.table("predicciones").select("*").order("created_at", desc=True).limit(500).execute()
-    df_hist = pd.DataFrame(response.data)
+    # Combinar datos históricos + recientes
+    try:
+        df_pred = pd.DataFrame(supabase.table("predicciones").select("*").execute().data)
+        df_hist = pd.DataFrame(supabase.table("anemia_riesgo").select("*").execute().data)
+
+        df_all = pd.concat([df_hist, df_pred], ignore_index=True)
+        df_all["created_at"] = pd.to_datetime(df_all["created_at"], errors="coerce")
+        df_all = df_all.dropna(subset=["created_at"])
+        df_all = df_all.sort_values("created_at", ascending=False)
+    except Exception as e:
+    st.error("No se pudo conectar a Supabase.")
+    st.exception(e)
+
 
     if not df_hist.empty:
         # Convertir timestamps
