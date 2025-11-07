@@ -60,13 +60,12 @@ with col2:
 if st.button("Evaluar Riesgo de Anemia"):
     # Crear DataFrame de entrada
     input_data = pd.DataFrame([{
-        "Edad_meses": edad_meses,
-        "Peso_kg": peso,
-        "Talla_cm": talla,
-        "Sexo_F": 1 if sexo == "F" else 0,
-        "Sexo_M": 1 if sexo == "M" else 0,
-        "Altitud_m": altitud,
-        "Ingreso_Familiar_Soles": ingreso
+    "edad_meses": edad_meses,
+    "peso_kg": peso,
+    "talla_cm": talla,
+    "altitud_m": altitud,
+    "sexo": sexo,   # M / F, sin convertir a 1/0
+    "ingreso_familiar_soles": ingreso
     }])
 
     # Alinear con features esperadas
