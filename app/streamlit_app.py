@@ -161,3 +161,15 @@ try:
 except Exception as e:
     st.error("No se pudo conectar con Supabase o generar el dashboard.")
     st.exception(e)
+
+
+st.markdown("---")
+st.subheader("Historial de predicciones")
+
+try:
+    data = supabase.table("predicciones").select("*").order("created_at", desc=True).limit(10).execute()
+    df = pd.DataFrame(data.data)
+    st.dataframe(df)
+except Exception as e:
+    st.error("No se pudo cargar el historial.")
+    st.exception(e)
