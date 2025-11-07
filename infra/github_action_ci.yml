@@ -1,25 +1,23 @@
-name: CI - Validación de Streamlit App
+name: Deploy Streamlit App
 
 on:
   push:
     branches: [ main ]
-  pull_request:
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Clonar repositorio
-      uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-    - name: Configurar Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    - name: Instalar dependencias
-      run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-    - name: Prueba de importación
-      run: python -m streamlit hello
+      - name: Run smoke test
+        run: streamlit run app/streamlit_app.py --server.headless true & sleep 10; kill $!
