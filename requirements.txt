@@ -1,6 +1,7 @@
 streamlit
-supabase
 pandas
 joblib
-scikit-learn
 xgboost
+supabase
+python-dotenv
+scikit-learn
