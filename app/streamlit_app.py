@@ -122,8 +122,8 @@ try:
         df_all = df_all.dropna(subset=["created_at"])
         df_all = df_all.sort_values("created_at", ascending=False)
     except Exception as e:
-    st.error("No se pudo conectar a Supabase.")
-    st.exception(e)
+        st.error("No se pudo conectar a Supabase.")
+        st.exception(e)
 
 
     if not df_hist.empty:
