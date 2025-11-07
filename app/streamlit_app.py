@@ -103,3 +103,61 @@ if st.button("Evaluar Riesgo de Anemia"):
     except Exception as e:
         st.error("Error al procesar la predicción.")
         st.exception(e)
+
+# =========================================================
+# BLOQUE DE DASHBOARD ANALÍTICO — MIDIS 2025
+# =========================================================
+st.markdown("---")
+st.header("Análisis de Predicciones en Tiempo Real")
+
+try:
+    # Leer las predicciones recientes
+    response = supabase.table("predicciones").select("*").order("created_at", desc=True).limit(500).execute()
+    df_hist = pd.DataFrame(response.data)
+
+    if not df_hist.empty:
+        # Convertir timestamps
+        df_hist["created_at"] = pd.to_datetime(df_hist["created_at"])
+
+        # -------------------------------
+        # KPIs principales
+        # -------------------------------
+        total_pred = len(df_hist)
+        alto = (df_hist["riesgo"] == "ALTO").sum()
+        medio = (df_hist["riesgo"] == "MEDIO").sum()
+        bajo = (df_hist["riesgo"] == "BAJO").sum()
+
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Total de predicciones", f"{total_pred}")
+        col2.metric("Casos de riesgo ALTO", f"{alto} ({alto/total_pred*100:.1f}%)")
+        col3.metric("Casos MEDIOS", f"{medio} ({medio/total_pred*100:.1f}%)")
+        col4.metric("Casos BAJOS", f"{bajo} ({bajo/total_pred*100:.1f}%)")
+
+        # -------------------------------
+        # Distribución de riesgo (gráfico)
+        # -------------------------------
+        st.subheader("Distribución de riesgo")
+        dist = df_hist["riesgo"].value_counts(normalize=True).mul(100).reset_index()
+        dist.columns = ["Riesgo", "Porcentaje"]
+
+        st.bar_chart(dist.set_index("Riesgo"))
+
+        # -------------------------------
+        # Tendencia temporal (últimos 7 días)
+        # -------------------------------
+        st.subheader("Tendencia de predicciones")
+        trend = df_hist.groupby(df_hist["created_at"].dt.date)["riesgo"].value_counts().unstack(fill_value=0)
+        st.line_chart(trend)
+
+        # -------------------------------
+        # Tabla con últimas predicciones
+        # -------------------------------
+        st.subheader("Últimas predicciones registradas")
+        st.dataframe(df_hist[["created_at", "edad_meses", "peso", "talla", "sexo", "altitud", "ingreso", "probabilidad", "riesgo"]].head(10))
+
+    else:
+        st.info("No hay registros aún en la base de datos. Realiza una predicción para iniciar el historial.")
+
+except Exception as e:
+    st.error("No se pudo conectar con Supabase o generar el dashboard.")
+    st.exception(e)
