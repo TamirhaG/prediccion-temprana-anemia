@@ -1,9 +1,0 @@
-{
-  "model_name": "XGBoost Calibrado",
-  "version": "1.0.0",
-  "trained_on": "2025-11-05",
-  "trained_by": "Ramon Giraldo",
-  "framework": "scikit-learn + xgboost",
-  "target_variable": "Anemia",
-  "description": "Modelo calibrado para detección temprana de riesgo de anemia infantil beneficiarios MIDIS."
-}
