@@ -36,7 +36,7 @@ expected_features = metadata["feature_names"]
 # -------------------------------
 # Interfaz de usuario
 # -------------------------------
-st.title("🩸 Sistema Predictivo de Riesgo de Anemia Infantil - MIDIS 2025")
+st.title("Sistema Predictivo de Riesgo de Anemia Infantil - MIDIS 2025")
 st.markdown("Este sistema utiliza **Machine Learning** para estimar el riesgo de anemia en niños menores de 5 años beneficiarios de programas sociales.")
 
 col1, col2 = st.columns(2)
@@ -52,7 +52,7 @@ with col2:
     ingreso = st.number_input("Ingreso familiar (S/)", min_value=0, max_value=5000, value=1200)
 
 # Botón de predicción
-if st.button("🔍 Evaluar Riesgo de Anemia"):
+if st.button("Evaluar Riesgo de Anemia"):
     # Crear DataFrame de entrada
     input_data = pd.DataFrame([{
         "Edad_meses": edad_meses,
@@ -76,17 +76,17 @@ if st.button("🔍 Evaluar Riesgo de Anemia"):
         prob = model.predict_proba(input_data)[0][1]
         riesgo = "ALTO" if prob >= 0.7 else "MEDIO" if prob >= 0.5 else "BAJO"
 
-        st.subheader("🧠 Resultado del Modelo:")
+        st.subheader("Resultado del Modelo:")
         st.metric("Probabilidad estimada de anemia", f"{prob*100:.2f}%")
         st.metric("Clasificación de riesgo", riesgo)
 
         # Recomendación según riesgo
         if riesgo == "ALTO":
-            st.warning("🚨 Recomendación: Referir a centro de salud para evaluación inmediata.")
+            st.warning("Recomendación: Referir a centro de salud para evaluación inmediata.")
         elif riesgo == "MEDIO":
-            st.info("📋 Recomendación: Programar control en 30 días.")
+            st.info("Recomendación: Programar control en 30 días.")
         else:
-            st.success("✅ Recomendación: Continuar con control anual rutinario.")
+            st.success("Recomendación: Continuar con control anual rutinario.")
 
         # Guardar en Supabase
         supabase.table("predicciones").insert({
@@ -101,5 +101,5 @@ if st.button("🔍 Evaluar Riesgo de Anemia"):
         }).execute()
 
     except Exception as e:
-        st.error("⚠️ Error al procesar la predicción.")
+        st.error("Error al procesar la predicción.")
         st.exception(e)
