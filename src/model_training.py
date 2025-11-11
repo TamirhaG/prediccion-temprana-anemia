@@ -10,7 +10,7 @@ from src import config
 
 def train_models():
     print("=== BLOQUE 4: ENTRENAMIENTO DE MODELOS ===")
-    df = pd.read_csv(os.path.join(config.OUTPUT_DIR, "featured_dataset_balanced.csv"))
+    df = pd.read_csv(os.path.join(config.OUTPUT_DIR, "featured_dataset.csv"))
     X = df.drop(columns=["Anemia"])
     y = df["Anemia"]
 
