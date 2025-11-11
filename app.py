@@ -16,8 +16,8 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🩺 Sistema Predictivo de Anemia — Perú 2025")
-st.markdown("**Proyecto IDL3 — Universidad Continental / Equipo TamirhaG**")
+st.title("Sistema Predictivo de Anemia — Perú 2025")
+st.markdown("**Para niños menores de 5 años**")
 
 # ===== CARGA DE MODELOS Y MAPEOS =====
 base_dir = os.getcwd()
