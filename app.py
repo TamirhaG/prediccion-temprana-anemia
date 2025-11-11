@@ -48,7 +48,7 @@ for name, path in model_paths.items():
     if os.path.exists(path):
         models[name] = joblib.load(path)
     else:
-        st.warning(f"⚠️ No se encontró el modelo {name}. Verifica que el archivo esté en el repositorio.")
+        st.warning(f"No se encontró el modelo {name}. Verifica que el archivo esté en el repositorio.")
 
 st.sidebar.header("Selecciona el Modelo")
 selected_model_name = st.sidebar.selectbox("Modelo", list(models.keys()))
@@ -101,7 +101,7 @@ if uploaded_file:
         predictions = model.predict(df_input)
         decoded = [inv_label_map[int(p)] for p in predictions]
         df_input["Predicción"] = decoded
-        st.success("✅ Predicciones generadas correctamente")
+        st.success("Predicciones generadas correctamente")
         st.dataframe(df_input)
         st.download_button(
             label="Descargar resultados CSV",
@@ -144,14 +144,14 @@ if st.button("Predecir manualmente"):
     prediction = model.predict(df_input)[0]
     decoded = inv_label_map[int(prediction)]
 
-    st.success(f"🎯 Predicción del modelo **{selected_model_name}**: **{decoded}**")
+    st.success(f"Predicción del modelo **{selected_model_name}**: **{decoded}**")
     st.balloons()
 
     # Generar PDF con resultados
     pdf_path = generar_informe_pdf(data, decoded, selected_model_name)
     with open(pdf_path, "rb") as pdf_file:
         st.download_button(
-            label="📄 Descargar Informe en PDF",
+            label="Descargar Informe en PDF",
             data=pdf_file,
             file_name="informe_prediccion_anemia.pdf",
             mime="application/pdf"
