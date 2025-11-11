@@ -31,8 +31,8 @@ data/
 output/
 artifacts/
 *.csv
-*.joblib
-*.json
+#*.joblib
+#*.json
 *.png
 *.pdf
 
