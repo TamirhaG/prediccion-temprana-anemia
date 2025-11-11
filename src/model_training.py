@@ -18,13 +18,15 @@ def train_models():
     le = LabelEncoder()
     y_encoded = le.fit_transform(y)
 
-    # Guardamos el mapeo en artifacts/
-    import json
-    label_map = dict(zip(le.classes_, le.transform(le.classes_)))
+    # Guardar el mapeo de etiquetas (convertido a tipos nativos)
+    label_map = {cls: int(val) for cls, val in zip(le.classes_, le.transform(le.classes_))}
     map_path = os.path.join(config.ARTIFACTS_DIR, "label_mapping.json")
+
     with open(map_path, "w", encoding="utf-8") as f:
         json.dump(label_map, f, indent=4, ensure_ascii=False)
-    print(f"✔ Mapeo de clases guardado en {map_path}")
+
+    print(f"Mapeo de clases guardado en {map_path}")
+
 
 
     X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
