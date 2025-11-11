@@ -5,6 +5,9 @@ import joblib
 import json
 import os
 from src import config
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
 
 # ===== CONFIGURACIÓN GENERAL =====
 st.set_page_config(
@@ -17,8 +20,6 @@ st.title("🩺 Sistema Predictivo de Anemia — Perú 2025")
 st.markdown("**Proyecto IDL3 — Universidad Continental / Equipo TamirhaG**")
 
 # ===== CARGA DE MODELOS Y MAPEOS =====
-
-# Detectar entorno: local (Codespaces) o remoto (Streamlit Cloud)
 base_dir = os.getcwd()
 
 # Buscar label_mapping.json (prioriza raíz si está desplegado en la nube)
@@ -49,22 +50,6 @@ for name, path in model_paths.items():
     else:
         st.warning(f"⚠️ No se encontró el modelo {name}. Verifica que el archivo esté en el repositorio.")
 
-
-# Intentar primero ruta local (para Streamlit Cloud)
-if os.path.exists("label_mapping.json"):
-    map_path = "label_mapping.json"
-else:
-    map_path = os.path.join(config.ARTIFACTS_DIR, "label_mapping.json")
-
-
-with open(map_path, "r", encoding="utf-8") as f:
-    label_map = json.load(f)
-inv_label_map = {v: k for k, v in label_map.items()}
-
-models = {
-    name: joblib.load(path) for name, path in model_paths.items() if os.path.exists(path)
-}
-
 st.sidebar.header("Selecciona el Modelo")
 selected_model_name = st.sidebar.selectbox("Modelo", list(models.keys()))
 model = models[selected_model_name]
@@ -80,6 +65,30 @@ if st.sidebar.button("Ver métricas y gráficos"):
     st.image(os.path.join(config.OUTPUT_DIR, f"cm_{selected_model_name}.png"))
     st.image(os.path.join(config.OUTPUT_DIR, f"roc_{selected_model_name}.png"))
 
+# ===== FUNCIÓN PARA GENERAR INFORME PDF =====
+def generar_informe_pdf(datos, prediccion, modelo):
+    """Genera un informe PDF simple con los resultados de predicción."""
+    pdf_path = "informe_prediccion_anemia.pdf"
+    doc = SimpleDocTemplate(pdf_path, pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
+
+    story.append(Paragraph("🩺 Sistema Predictivo de Anemia — Perú 2025", styles["Title"]))
+    story.append(Paragraph(f"Modelo utilizado: {modelo}", styles["Heading2"]))
+    story.append(Spacer(1, 12))
+
+    story.append(Paragraph("**Datos ingresados:**", styles["Heading3"]))
+    for k, v in datos.items():
+        story.append(Paragraph(f"{k}: {v}", styles["Normal"]))
+
+    story.append(Spacer(1, 12))
+    story.append(Paragraph(f"**Resultado de la predicción:** {prediccion}", styles["Heading2"]))
+    story.append(Spacer(1, 12))
+    story.append(Paragraph("Este informe fue generado automáticamente por el sistema predictivo de anemia desarrollado en el marco del Proyecto IDL3 — Universidad Continental.", styles["Normal"]))
+
+    doc.build(story)
+    return pdf_path
+
 # ===== OPCIÓN 1: CARGAR CSV =====
 st.header("Cargar datos desde un archivo CSV")
 uploaded_file = st.file_uploader("Selecciona un archivo CSV con los datos del paciente", type=["csv"])
@@ -92,7 +101,7 @@ if uploaded_file:
         predictions = model.predict(df_input)
         decoded = [inv_label_map[int(p)] for p in predictions]
         df_input["Predicción"] = decoded
-        st.success("Predicciones generadas correctamente")
+        st.success("✅ Predicciones generadas correctamente")
         st.dataframe(df_input)
         st.download_button(
             label="Descargar resultados CSV",
@@ -119,7 +128,7 @@ with col3:
     zinc = st.number_input("Zinc (µg/dL)", min_value=10.0, max_value=200.0, value=90.0)
 
 if st.button("Predecir manualmente"):
-    data = pd.DataFrame([{
+    data = {
         "Edad": edad,
         "Peso": peso,
         "Talla": talla,
@@ -129,9 +138,21 @@ if st.button("Predecir manualmente"):
         "Vitamina_A": vitA,
         "Proteina": proteina,
         "Zinc": zinc
-    }])
-    prediction = model.predict(data)[0]
+    }
+
+    df_input = pd.DataFrame([data])
+    prediction = model.predict(df_input)[0]
     decoded = inv_label_map[int(prediction)]
 
-    st.success(f"Predicción del modelo **{selected_model_name}**: **{decoded}**")
+    st.success(f"🎯 Predicción del modelo **{selected_model_name}**: **{decoded}**")
     st.balloons()
+
+    # Generar PDF con resultados
+    pdf_path = generar_informe_pdf(data, decoded, selected_model_name)
+    with open(pdf_path, "rb") as pdf_file:
+        st.download_button(
+            label="📄 Descargar Informe en PDF",
+            data=pdf_file,
+            file_name="informe_prediccion_anemia.pdf",
+            mime="application/pdf"
+        )
