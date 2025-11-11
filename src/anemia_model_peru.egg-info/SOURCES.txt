@@ -1,0 +1,7 @@
+LICENSE
+README.md
+pyproject.toml
+src/anemia_model_peru.egg-info/PKG-INFO
+src/anemia_model_peru.egg-info/SOURCES.txt
+src/anemia_model_peru.egg-info/dependency_links.txt
+src/anemia_model_peru.egg-info/top_level.txt

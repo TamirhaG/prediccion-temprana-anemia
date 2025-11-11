@@ -1,38 +1,44 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.ipynb_checkpoints/
-*.egg-info/
+# ===============================
+# IGNORAR ARCHIVOS GRANDES Y TEMPORALES
+# ===============================
 
-# Envs
-.venv/
-env/
-venv/
-
-# Data & outputs
-data/input/
-data/output/
-data/artifacts/*.tmp
-data/**/*.tmp
-
-# Notebooks cache
-*.log
-
-# OS
-.DS_Store
-
-# Modelos: PERMITIMOS joblib en artifacts (comenta si prefieres releases)
-# data/artifacts/*.joblib
-
-# Ignorar datasets y salidas generadas
-data/
+# Carpetas de salida y artefactos intermedios
 output/
 artifacts/
+__pycache__/
+.ipynb_checkpoints/
+*.tmp
+*.log
+
+# Archivos generados automáticamente
 *.csv
-#*.joblib
-#*.json
-*.png
-*.pdf
+*.xlsx
+*.ods
+
+# Archivos de configuración local o cachés
+.env
+*.DS_Store
+*.bak
+*.swp
+*.zip
+*.tar.gz
+
+# ===============================
+# PERMITIR ARCHIVOS NECESARIOS PARA STREAMLIT
+# ===============================
+
+# Subir los modelos finales y el mapeo JSON
+!model_RandomForest.joblib
+!model_XGBoost.joblib
+!label_mapping.json
+
+# Permitir archivos clave del proyecto
+!requirements.txt
+!pyproject.toml
+!README.md
+!LICENSE
+!app.py
+!main.py
+!src/
+
 

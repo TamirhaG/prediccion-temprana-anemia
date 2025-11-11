@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: anemia-model-peru
+Version: 0.1.0
+Summary: Sistema predictivo para riesgo de anemia en niños - MIDIS 2025
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Dynamic: license-file
+
+# Anemia PERÚ — Sistema Predictivo (IDL3)
+
+Pipeline reproducible para predecir **No / Leve / Moderada / Severa** en niños <5 años (Perú).
+
+## Instalación
+```bash
+pip install -r requirements.txt
+pip install -e .
