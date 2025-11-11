@@ -1,12 +1,15 @@
 import os
+import joblib
 import pandas as pd
 import numpy as np
-import joblib
+import json  # 🔹 Agregar esta línea
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, f1_score, cohen_kappa_score, roc_auc_score
+from sklearn.metrics import classification_report
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
+from sklearn.preprocessing import LabelEncoder
 from src import config
+
 
 def train_models():
     df = pd.read_csv(os.path.join(config.OUTPUT_DIR, "featured_dataset.csv"))
