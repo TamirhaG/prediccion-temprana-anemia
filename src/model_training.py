@@ -35,16 +35,49 @@ def train_models():
     X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
 
 
-    rf = RandomForestClassifier(n_estimators=200, class_weight="balanced", random_state=42)
+    # === BLOQUE 4: ENTRENAMIENTO DE MODELOS ===
+    print("=== BLOQUE 4: ENTRENAMIENTO DE MODELOS ===")
+
+    rf = RandomForestClassifier(n_estimators=200, random_state=42)
     xgb = XGBClassifier(
-        objective="multi:softprob", eval_metric="mlogloss", num_class=len(y.unique()), random_state=42
+        n_estimators=200,
+        learning_rate=0.1,
+        max_depth=6,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        objective="multi:softprob",
+        num_class=len(np.unique(y_train)),
+        random_state=42
     )
 
-    rf.fit(X_train, y_train)
-    xgb.fit(X_train, y_train)
+    models = {"RandomForest": rf, "XGBoost": xgb}
+    metrics = {}
 
-    y_pred = le.inverse_transform(model.predict(X_test))
+    for name, model in models.items():
+        print(f"Entrenando {name}...")
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
 
+        # Invertimos las etiquetas para obtener los nombres originales
+        y_pred_labels = le.inverse_transform(y_pred)
+        y_test_labels = le.inverse_transform(y_test)
+
+        acc = accuracy_score(y_test, y_pred)
+        f1 = f1_score(y_test, y_pred, average="macro")
+        kappa = cohen_kappa_score(y_test, y_pred)
+
+        metrics[name] = {"accuracy": acc, "f1_macro": f1, "kappa": kappa}
+
+        # Guardar modelo
+        model_path = os.path.join(config.ARTIFACTS_DIR, f"model_{name}.joblib")
+        joblib.dump(model, model_path)
+        print(f"Modelo {name} guardado en {model_path}")
+
+    # Exportar métricas iniciales
+    metrics_path = os.path.join(config.ARTIFACTS_DIR, "training_metrics.json")
+    with open(metrics_path, "w", encoding="utf-8") as f:
+        json.dump(metrics, f, indent=4, ensure_ascii=False)
+    print(f"Métricas de entrenamiento guardadas en {metrics_path}")
 
     rf_pred = rf.predict(X_test)
     xgb_pred = xgb.predict(X_test)
@@ -64,6 +97,6 @@ def train_models():
 
     joblib.dump(rf, os.path.join(config.ARTIFACTS_DIR, "model_rf.joblib"))
     joblib.dump(xgb, os.path.join(config.ARTIFACTS_DIR, "model_xgb.joblib"))
-    print("✔ Modelos entrenados y guardados en artifacts/")
+    print("Modelos entrenados y guardados en artifacts/")
     print(metrics)
     return metrics
