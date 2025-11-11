@@ -25,3 +25,11 @@ data/**/*.tmp
 
 # Modelos: PERMITIMOS joblib en artifacts (comenta si prefieres releases)
 # data/artifacts/*.joblib
+
+# Ignorar datasets y archivos generados
+data/
+output/
+artifacts/
+*.joblib
+*.csv
+*.json
