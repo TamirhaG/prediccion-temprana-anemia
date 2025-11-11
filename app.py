@@ -17,10 +17,37 @@ st.title("🩺 Sistema Predictivo de Anemia — Perú 2025")
 st.markdown("**Proyecto IDL3 — Universidad Continental / Equipo TamirhaG**")
 
 # ===== CARGA DE MODELOS Y MAPEOS =====
+
+# Detectar entorno: local (Codespaces) o remoto (Streamlit Cloud)
+base_dir = os.getcwd()
+
+# Buscar label_mapping.json (prioriza raíz si está desplegado en la nube)
+if os.path.exists(os.path.join(base_dir, "label_mapping.json")):
+    map_path = os.path.join(base_dir, "label_mapping.json")
+else:
+    map_path = os.path.join(config.ARTIFACTS_DIR, "label_mapping.json")
+
+# Buscar modelos entrenados (prioriza raíz si está en la nube)
 model_paths = {
-    "RandomForest": "model_RandomForest.joblib",
-    "XGBoost": "model_XGBoost.joblib"
+    "RandomForest": os.path.join(base_dir, "model_RandomForest.joblib")
+        if os.path.exists(os.path.join(base_dir, "model_RandomForest.joblib"))
+        else os.path.join(config.ARTIFACTS_DIR, "model_RandomForest.joblib"),
+    "XGBoost": os.path.join(base_dir, "model_XGBoost.joblib")
+        if os.path.exists(os.path.join(base_dir, "model_XGBoost.joblib"))
+        else os.path.join(config.ARTIFACTS_DIR, "model_XGBoost.joblib")
 }
+
+# Cargar mapeo y modelos
+with open(map_path, "r", encoding="utf-8") as f:
+    label_map = json.load(f)
+inv_label_map = {v: k for k, v in label_map.items()}
+
+models = {}
+for name, path in model_paths.items():
+    if os.path.exists(path):
+        models[name] = joblib.load(path)
+    else:
+        st.warning(f"⚠️ No se encontró el modelo {name}. Verifica que el archivo esté en el repositorio.")
 
 
 # Intentar primero ruta local (para Streamlit Cloud)
