@@ -11,9 +11,7 @@ from src import config
 def preprocess_data():
     print("=== BLOQUE 2: PREPROCESAMIENTO ===")
     df = pd.read_csv(config.DATASET_PATH, encoding="utf-8-sig")
-    df.columns = df.columns.str.strip()
-    df.replace({"SÃ­": "Sí", "NÃ³": "No"}, inplace=True)
-    df.drop_duplicates(inplace=True)
+    df = df.sample(n=20000, random_state=42)  # usar una muestra de 20k filas
 
     num_cols = ["Edad_meses", "Altitud_m", "Ingreso_Familiar_Soles",
                 "Nro_Hijos", "Peso_kg", "Talla_cm",
