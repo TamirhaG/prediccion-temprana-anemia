@@ -18,10 +18,17 @@ st.markdown("**Proyecto IDL3 — Universidad Continental / Equipo TamirhaG**")
 
 # ===== CARGA DE MODELOS Y MAPEOS =====
 model_paths = {
-    "RandomForest": os.path.join(config.ARTIFACTS_DIR, "model_RandomForest.joblib"),
-    "XGBoost": os.path.join(config.ARTIFACTS_DIR, "model_XGBoost.joblib")
+    "RandomForest": "model_RandomForest.joblib",
+    "XGBoost": "model_XGBoost.joblib"
 }
-map_path = os.path.join(config.ARTIFACTS_DIR, "label_mapping.json")
+
+
+# Intentar primero ruta local (para Streamlit Cloud)
+if os.path.exists("label_mapping.json"):
+    map_path = "label_mapping.json"
+else:
+    map_path = os.path.join(config.ARTIFACTS_DIR, "label_mapping.json")
+
 
 with open(map_path, "r", encoding="utf-8") as f:
     label_map = json.load(f)
