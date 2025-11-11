@@ -9,14 +9,26 @@ from xgboost import XGBClassifier
 from src import config
 
 def train_models():
-    print("=== BLOQUE 4: ENTRENAMIENTO DE MODELOS ===")
     df = pd.read_csv(os.path.join(config.OUTPUT_DIR, "featured_dataset.csv"))
     X = df.drop(columns=["Anemia"])
     y = df["Anemia"]
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, stratify=y, random_state=42
-    )
+    # Codificación de etiquetas para modelos (0,1,2,3)
+    from sklearn.preprocessing import LabelEncoder
+    le = LabelEncoder()
+    y_encoded = le.fit_transform(y)
+
+    # Guardamos el mapeo en artifacts/
+    import json
+    label_map = dict(zip(le.classes_, le.transform(le.classes_)))
+    map_path = os.path.join(config.ARTIFACTS_DIR, "label_mapping.json")
+    with open(map_path, "w", encoding="utf-8") as f:
+        json.dump(label_map, f, indent=4, ensure_ascii=False)
+    print(f"✔ Mapeo de clases guardado en {map_path}")
+
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
+
 
     rf = RandomForestClassifier(n_estimators=200, class_weight="balanced", random_state=42)
     xgb = XGBClassifier(
@@ -25,6 +37,9 @@ def train_models():
 
     rf.fit(X_train, y_train)
     xgb.fit(X_train, y_train)
+
+    y_pred = le.inverse_transform(model.predict(X_test))
+
 
     rf_pred = rf.predict(X_test)
     xgb_pred = xgb.predict(X_test)
