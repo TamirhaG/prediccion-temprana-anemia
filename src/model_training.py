@@ -2,13 +2,14 @@ import os
 import joblib
 import pandas as pd
 import numpy as np
-import json  # 🔹 Agregar esta línea
+import json
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score, f1_score, cohen_kappa_score  # ✅ agrega esto
 from src import config
+
 
 
 def train_models():
